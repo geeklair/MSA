@@ -1,6 +1,6 @@
 # MSA — Minimal Synthetic Agent: Introduction
 
-"What I cannot create, I do not understand."  -- Richard Feynman
+"_What I cannot create, I do not understand._"  -- Richard Feynman
 
 ## 0. Preface
 
