@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.env
+logs/
+scratchpads/*.yaml
+!scratchpads/active.yaml
+*.log
+.DS_Store
+.venv/
+*.yaml~
+config/rules.md~

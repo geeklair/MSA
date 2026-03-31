@@ -1,0 +1,3 @@
+"""
+MSA — Minimal Synthetic Agent
+"""
