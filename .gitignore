@@ -1,11 +1,53 @@
+# Python bytecode
 __pycache__/
 *.pyc
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Secrets and environment files
+# .env is the common name; also ignore variant suffixes used for different
+# environments (e.g. .env.local, .env.prod, .env.test) so they can't be
+# accidentally committed even if created for local testing.
 .env
+.env.*
+
+# Logs — written at runtime; no value in version control
 logs/
+*.log
+
+# Scratchpads — runtime state snapshots; keep only the live state file
 scratchpads/*.yaml
 !scratchpads/active.yaml
-*.log
+
+# Editor and IDE files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# OS metadata
 .DS_Store
-.venv/
+Thumbs.db
+
+# Python build and distribution artifacts
+dist/
+build/
+*.egg-info/
+
+# Test and coverage artifacts
+.coverage
+.pytest_cache/
+htmlcov/
+
+# Backup files produced by editors
 *.yaml~
+*.md~
 config/rules.md~
+*.bak
