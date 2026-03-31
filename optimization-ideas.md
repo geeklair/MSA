@@ -8,6 +8,8 @@ Here we compare the MSA architecture to [@cecat's OpenClaw architecture](https:/
 
 ### 1. The Three-Layer Pattern Solves a Core MSA Problem
 
+*OpenClaw: [§E4.1 The Three-Layer Pattern in Practice](https://github.com/cecat/OpenClaw-Tutorial/blob/main/OpenClaw-Tutorial.md#e41-the-three-layer-pattern-in-practice)*
+
 MSA currently conflates scheduling, procedure, and judgment in the same Python process. OpenClaw's hard separation — **Shell owns the clock, Runbooks own procedure, LLM owns judgment** — maps almost perfectly onto Sage's own architecture:
 
 - **Sage's Edge Scheduler (ES)** becomes the shell/clock layer — it decides *when* the MSA agent wakes, what sensors it queries, and what plugins run. The MSA should not have its own scheduler; it should be a Waggle plugin *triggered by* ES.
@@ -19,6 +21,8 @@ This would also mean MSA's `scheduler.py` largely goes away in favor of native W
 ---
 
 ### 2. Node Identity Files → The Sacred Eight for Edge Hardware
+
+*OpenClaw: [§3 Agent Identity: The Workspace and the Sacred-8 Files](https://github.com/cecat/OpenClaw-Tutorial/blob/main/OpenClaw-Tutorial.md#module-3--agent-identity-the-workspace-and-the-sacred-8-files)*
 
 OpenClaw's Sacred Eight files are always-loaded context that makes an agent self-aware without querying capabilities at runtime. For MSA on Sage, each deployed node needs an equivalent immutable identity layer:
 
@@ -33,6 +37,8 @@ OpenClaw's key insight here: **the agent should never discover its own capabilit
 
 ### 3. Heartbeat/Calendar/TODO Maps to Sage's Sensing Cadences
 
+*OpenClaw: [§E3.3 Three Tiers of Scheduling](https://github.com/cecat/OpenClaw-Tutorial/blob/main/OpenClaw-Tutorial.md#e33-three-tiers-of-scheduling)*
+
 The three-tier scheduling OpenClaw uses translates naturally:
 
 - **Heartbeat (every 15 min)** → continuous sensor health checks, connectivity to Beehive, calibration status. This runs on every node unconditionally.
@@ -44,6 +50,8 @@ The shell (Waggle ES) owns the calendar. The agent owns the TODO queue in its sc
 ---
 
 ### 4. Multi-Agent Patterns for a 150-Node Distributed Sensing Network
+
+*OpenClaw: [PATTERNS.md — Broadcast, Scatter-Gather, Tree-Reduce, Blackboard, Pipeline](https://github.com/cecat/OpenClaw-Tutorial/blob/main/PATTERNS.md)*
 
 This is where OpenClaw's PATTERNS.md adds the most architectural value. The MSA is currently single-agent; Sage has 150 nodes. OpenClaw gives you a vocabulary:
 
@@ -57,6 +65,8 @@ The MSA architecture doesn't yet have primitives for node-to-node coordination. 
 ---
 
 ### 5. The Outbox Pattern for Scientific Data Publication
+
+*OpenClaw: [§E5 Multi-layer Oversight: The Outbox and Review Pattern](https://github.com/cecat/OpenClaw-Tutorial/blob/main/OpenClaw-Tutorial.md#enhancement-5--multi-layer-oversight-the-outbox-and-review-pattern)*
 
 OpenClaw's insight — **every external communication with real-world consequences requires a human-reviewed outbox** — applies directly to scientific data publication on Beehive.
 
@@ -72,6 +82,8 @@ This is especially important for **alert thresholds** — a false wildfire alert
 
 ### 6. Session History Drift Is Amplified in Long-Running Sensor Nodes
 
+*OpenClaw: [§3.6 Session Management and Daily Reset](https://github.com/cecat/OpenClaw-Tutorial/blob/main/OpenClaw-Tutorial.md#36-session-management-and-daily-reset)*
+
 OpenClaw's most surprising lesson: **session history examples can override Sacred Eight instructions**. In a long-running sensor node that's been processing images for weeks, the accumulated session history of "I determined this was not a fire" examples could actively suppress future fire detection.
 
 The MSA's scratchpad (`active.yaml`) partially mitigates this because it's explicit state, not implicit history. But the model's inference is still conditioned on accumulated prompt history. OpenClaw's solution — **scheduled session resets with explicit behavioral re-anchoring** — should be built into MSA's node deployment lifecycle. After a reset, the first prompt re-states the node's identity and current mission.
@@ -81,6 +93,8 @@ For Sage nodes running 24/7 for years, this is not optional maintenance — it's
 ---
 
 ### 7. Model Tiering by Node Compute Capacity
+
+*OpenClaw: [§E1.2 Choosing Your Model](https://github.com/cecat/OpenClaw-Tutorial/blob/main/OpenClaw-Tutorial.md#e12-choosing-your-model) and [§E1.3 Quick and Easy Model Switch](https://github.com/cecat/OpenClaw-Tutorial/blob/main/OpenClaw-Tutorial.md#e13-quick-and-easy-model-switch)*
 
 OpenClaw runs different models on different agents based on task complexity. Sage nodes have heterogeneous compute (Wild Sage Nodes with Xavier NX vs. Blade Nodes with GPUs). MSA already supports Anthropic/vLLM/Ollama, but the assignment logic is flat.
 
@@ -95,6 +109,8 @@ The model-per-agent-type assignment in OpenClaw's `config.yaml` is a useful patt
 
 ### 8. Science Runbooks Replace Hard-Coded Tool Logic
 
+*OpenClaw: [§E4.2 Runbooks: Procedures the Agent Follows](https://github.com/cecat/OpenClaw-Tutorial/blob/main/OpenClaw-Tutorial.md#e42-runbooks-procedures-the-agent-follows)*
+
 Currently MSA's tools are generic (echo, shell, read_file, http_get). For Sage, the specific science tasks — "classify this image for fire/smoke," "identify bird species from audio," "correlate PM2.5 with traffic data" — would naturally live in tool implementations.
 
 OpenClaw's Runbook pattern suggests an alternative: **keep tools generic, make science tasks runbooks**. A "wildfire detection" runbook says: call `capture_image`, pass to `inference_model` with these parameters, check confidence against threshold, if above 0.7 write to outbox. The science logic is in a markdown file on disk, not baked into Python. Scientists can update detection protocols without redeploying the agent.
@@ -104,6 +120,8 @@ This maps cleanly to Sage's ECR (Edge Code Repository) model — containerized p
 ---
 
 ### 9. Behavioral Invariants for Scientific Integrity
+
+*OpenClaw: [§2.2 Alignment](https://github.com/cecat/OpenClaw-Tutorial/blob/main/OpenClaw-Tutorial.md#22-alignment) and [§3.2 What Each File Should (and Should Not) Contain](https://github.com/cecat/OpenClaw-Tutorial/blob/main/OpenClaw-Tutorial.md#32-recommendations-on-what-each-file-should-and-should-not-contain)*
 
 OpenClaw's SOUL.md contains hard constraints on what an agent *always* and *never* does. MSA's `config/rules.md` covers agent behavior but not domain-specific integrity constraints. For a scientific monitoring system, you need both:
 
@@ -117,6 +135,8 @@ These invariants should be immutable — loaded on every inference call, never o
 ---
 
 ### 10. The Scratchpad as Local Cache, Beehive as Canonical State
+
+*OpenClaw: [§2.3 Separation of Responsibilities: Code for Procedure, LLM for Judgment](https://github.com/cecat/OpenClaw-Tutorial/blob/main/OpenClaw-Tutorial.md#23-separation-of-responsibilities-code-for-procedure-llm-for-judgment)*
 
 MSA's scratchpad is currently the single source of truth. For a distributed system, this creates a problem: if a node's scratchpad diverges from Beehive's data, which is authoritative?
 
