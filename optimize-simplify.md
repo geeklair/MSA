@@ -3,25 +3,26 @@
 > *"Perfection is achieved not when there is nothing more to add, but when there is nothing left to take away."*
 > — Antoine de Saint-Exupéry
 
-The [companion document](optimization-ideas.md) draws ten architectural ideas from the [OpenClaw framework](https://github.com/cecat/OpenClaw-Tutorial) and applies them to the MSA running on Sage Continuum. Individually each idea has merit. Collectively they risk turning a clean, minimal agent loop into a framework — layering in scheduling abstractions, multi-agent coordination primitives, model tiering logic, and distributed state management before any of those things have been proven necessary.
+A [companion document](optimization-ideas.md) draws ten architectural ideas from the [OpenClaw framework](https://github.com/cecat/OpenClaw-Tutorial) and applies them to the MSA running on Sage Continuum. Individually each idea has merit. Collectively, however, they move *away* from the goal of a clean, minimal agent loop into a framework — layering in scheduling abstractions, multi-agent coordination primitives, model tiering logic, and distributed state management before any of those things have been proven necessary.
 
-This document applies a simplicity filter: **each idea should earn its place by solving a problem that actually exists today, not one that might exist at scale.** The question for each optimization is not *"could this be useful?"* but *"does the architecture become cleaner and easier to reason about with this than without it?"*
+Here we step back and apply a simplicity filter: **each idea should solve a problem that actually exists today, not one that might (or might not) manifest at scale.** The question for each optimization shifts from *"could this be useful?"* to *"does the architecture become cleaner and easier to reason about with this than without it?"*
 
-The goal is an architecture that is **as capable as the problem demands, and no more complex than that demands**.
+The goal here, then, is an architecture that is **as capable as the problem demands, and no more complex than that demands**.
 
 ---
 
-## The Filter: Three Categories
+## Three Categories
 
-Each of the ten optimization ideas falls into one of three categories when viewed through this lens:
+Each of the ten optimization ideas falls into one of three categories w.r.t. keeping the architecture clean and as simple as possible (and not more):
 
 - **Simplifies** — removes code, removes ambiguity, or eliminates a class of failure without adding new moving parts
 - **Neutral / deferred** — worth doing eventually, but complexity cost roughly equals benefit at current scale
 - **Adds complexity** — genuinely useful at scale, but premature; should wait until the need is demonstrated
 
+
 ---
 
-## Ideas That Actually Simplify
+## Ideas That Simplify
 
 ### 1. Remove `scheduler.py` — Let Waggle Own the Clock
 
