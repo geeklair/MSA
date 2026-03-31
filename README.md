@@ -1,5 +1,11 @@
 # MSA — Minimal Synthetic Agent: Introduction
 
+"What I cannot create, I do not understand."  -- Richard Feynman
+
+## 0. Preface
+
+There is much to be learned from paring down complex systems into small, workable systems that fit in your hand. The minimal synthetic bacterial cell (Venter, et. al) provided the smallest biological machinery needed for a cell.  This repo privides the minimal components and architecture needed to understand and then extend pocket-sized agents into useful bots.
+
 ## 1. What the MSA Is and Why It Exists
 
 The **Minimal Synthetic Agent (MSA)** is a teaching codebase that shows exactly how an autonomous AI agent loop works — stripped of framework magic so every component is visible and editable.
