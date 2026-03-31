@@ -33,7 +33,7 @@ MSA's `scheduler.py` is ~100 lines managing interval timers, file watchers, and 
 
 ---
 
-### 6. Scheduled Session Resets — A Simple Fix for a Non-Obvious Failure Mode
+### 2. Scheduled Session Resets — A Simple Fix for a Non-Obvious Failure Mode
 
 *OpenClaw: [§3.6 Session Management and Daily Reset](https://github.com/cecat/OpenClaw-Tutorial/blob/main/OpenClaw-Tutorial.md#36-session-management-and-daily-reset)*
 
@@ -43,7 +43,7 @@ Without session resets, a long-running sensor node accumulates prompt history th
 
 ---
 
-### 8. Science Runbooks — Move Science Logic Out of Python
+### 3. Science Runbooks — Move Science Logic Out of Python
 
 *OpenClaw: [§E4.2 Runbooks: Procedures the Agent Follows](https://github.com/cecat/OpenClaw-Tutorial/blob/main/OpenClaw-Tutorial.md#e42-runbooks-procedures-the-agent-follows)*
 
@@ -53,7 +53,7 @@ The temptation is to encode science tasks — wildfire detection thresholds, spe
 
 ---
 
-### 9. Node Identity as Immutable Context — Reorganize `rules.md`, Don't Expand It
+### 4. Node Identity as Immutable Context — Reorganize `rules.md`, Don't Expand It
 
 *OpenClaw: [§2.2 Alignment](https://github.com/cecat/OpenClaw-Tutorial/blob/main/OpenClaw-Tutorial.md#22-alignment) and [§3.2 What Each File Should (and Should Not) Contain](https://github.com/cecat/OpenClaw-Tutorial/blob/main/OpenClaw-Tutorial.md#32-recommendations-on-what-each-file-should-and-should-not-contain)*
 
@@ -65,7 +65,7 @@ MSA's `config/rules.md` currently conflates agent behavior (how to respond), sci
 
 ## Ideas That Are Neutral or Context-Dependent
 
-### 2. Node Identity Files — Worth Doing, But Scope Carefully
+### 5. Node Identity Files — Worth Doing, But Scope Carefully
 
 *OpenClaw: [§3 Agent Identity: The Workspace and the Sacred-8 Files](https://github.com/cecat/OpenClaw-Tutorial/blob/main/OpenClaw-Tutorial.md#module-3--agent-identity-the-workspace-and-the-sacred-8-files)*
 
@@ -75,17 +75,17 @@ Explicitly declaring a node's sensor capabilities in an identity file removes th
 
 ---
 
-### 3. Heartbeat / Calendar / TODO Cadences
+### 6. Heartbeat / Calendar / TODO Cadences
 
 *OpenClaw: [§E3.3 Three Tiers of Scheduling](https://github.com/cecat/OpenClaw-Tutorial/blob/main/OpenClaw-Tutorial.md#e33-three-tiers-of-scheduling)*
 
-**Verdict: Falls out of #1 for free.**
+**Verdict: Falls out of idea #1 for free.**
 
 If `scheduler.py` is removed and Waggle ES owns the clock, the three-tier scheduling structure (always-on health checks, recurring science tasks, dynamic one-shot tasks) is already implicit in how ES works. This isn't a separate optimization to implement — it's a description of what you get automatically when you hand scheduling to the platform. No additional work required.
 
 ---
 
-### 5. The Outbox Pattern — Only If Publishing Has Real Consequences
+### 7. The Outbox Pattern — Only If Publishing Has Real Consequences
 
 *OpenClaw: [§E5 Multi-layer Oversight: The Outbox and Review Pattern](https://github.com/cecat/OpenClaw-Tutorial/blob/main/OpenClaw-Tutorial.md#enhancement-5--multi-layer-oversight-the-outbox-and-review-pattern)*
 
@@ -97,7 +97,7 @@ The outbox is mechanically simple — a directory of pending JSON files and a cr
 
 ## Ideas That Add Complexity — Defer Until Needed
 
-### 4. Multi-Agent Coordination Patterns
+### 8. Multi-Agent Coordination Patterns
 
 *OpenClaw: [PATTERNS.md — Broadcast, Scatter-Gather, Tree-Reduce, Blackboard, Pipeline](https://github.com/cecat/OpenClaw-Tutorial/blob/main/PATTERNS.md)*
 
@@ -107,7 +107,7 @@ Scatter-gather, tree-reduce, and blackboard coordination across 150 nodes are po
 
 ---
 
-### 7. Model Tiering by Node Compute
+### 9. Model Tiering by Node Compute
 
 *OpenClaw: [§E1.2 Choosing Your Model](https://github.com/cecat/OpenClaw-Tutorial/blob/main/OpenClaw-Tutorial.md#e12-choosing-your-model) and [§E1.3 Quick and Easy Model Switch](https://github.com/cecat/OpenClaw-Tutorial/blob/main/OpenClaw-Tutorial.md#e13-quick-and-easy-model-switch)*
 
