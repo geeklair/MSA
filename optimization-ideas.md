@@ -1,6 +1,9 @@
 # MSA Optimizations: Lessons from OpenClaw
+3/31/2026 CeC
 
 Here we compare the MSA architecture to [@cecat's OpenClaw architecture](https://github.com/cecat/OpenClaw-Tutorial), a self-hosted multi-agent framework with hard-won operational lessons from running persistent agents at scale. The goal is to identify where OpenClaw's patterns could sharpen the MSA for deployment on Sage Continuum's 150-node distributed sensing network.
+
+My sense is that from an archtitecture pov there are a couple of places of particular interest, related to the "separation of responsibilities" (LLMs for generative and/or NLP; code for procedural/deterministic) and also the layering of functionality and the line between tools (screwdriver, knife, corkscrew rather than Swiss-Army knives) and scientific workflows (runbooks).   SO item 1 and 8 are the first ones thta stand out to me to ponder with this architecture.
 
 ---
 
