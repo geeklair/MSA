@@ -206,6 +206,23 @@ Compare before and after to see exactly what changed: which task moved to `compl
 
 This is the agent's current memory. Read it at any time to see where the agent is in its plan. After a successful cycle, `current_task` will have advanced to the next item in `pending_actions` and the previous task will appear in `completed_tasks`.
 
+The scratchpad schema:
+
+```yaml
+goals:           # What the agent is trying to accomplish (stable across cycles)
+current_task:    # What it's working on right now
+pending_actions: # Queued actions to take on the next wake
+completed_tasks: # History of what's been done
+notes:           # Agent's working memory / observations
+last_updated:    # Timestamp of last modification
+```
+
+To watch the scratchpad evolve in real time while the agent runs:
+
+```bash
+watch -n 5 cat scratchpads/active.yaml
+```
+
 ---
 
 ## 7. The `reset.sh` Workflow
