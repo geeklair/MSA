@@ -1,10 +1,13 @@
 # MSA — Minimal Synthetic Agent: Introduction
 
-"_What I cannot create, I do not understand._"  -- Richard Feynman
+> *"What I cannot create, I do not understand."*  — Richard Feynman
 
 ## 0. Preface
 
-There is much to be learned from paring down complex systems into small, workable systems that fit in your hand. The minimal synthetic bacterial cell (Venter, et. al) provided the smallest biological machinery needed for a cell.  This repo privides the minimal components and architecture needed to understand and then extend pocket-sized agents into useful bots.
+There is much to be learned from paring down complex systems into small, workable systems that fit in your hand. The minimal synthetic bacterial cell (Venter, et. al) provided the smallest biological machinery needed for a cell.  This repo provides the minimal components and architecture needed to understand and then extend pocket-sized agents into useful bots.
+
+> *"Perfection is achieved not when there is nothing more to add, but when there is nothing left to take away."*
+> — Antoine de Saint-Exupéry
 
 ## 1. What the MSA Is and Why It Exists
 
