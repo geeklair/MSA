@@ -11,7 +11,7 @@ There is much to be learned from paring down complex systems into small, workabl
 
 ## 1. What the MSA Is and Why It Exists
 
-The **Minimal Synthetic Agent (MSA)** is a teaching codebase that shows exactly how an autonomous AI agent loop works — stripped of framework magic so every component is visible and editable.
+The **Minimal Synthetic Agent (MSA)** is a simple codebase that shows exactly how an autonomous AI agent loop works — stripped of framework magic so every component is visible and editable.
 
 Most agent frameworks abstract away the loop: you never see how state is persisted between calls, how model output gets routed to tools, or what happens when the model doesn't know what to do next. MSA makes all of that explicit. It is intentionally small (~600 lines across 7 modules) and intentionally unsophisticated — the goal is readability, not performance.
 
