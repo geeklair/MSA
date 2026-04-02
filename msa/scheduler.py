@@ -3,7 +3,7 @@ msa/scheduler.py — Trigger-based scheduler for the MSA.
 
 Supports:
   - interval    — run the agent on a fixed time interval
-  - file_watch  — watch for a trigger file at /tmp/msa_trigger
+  - file_watch  — watch for a trigger file at tmp/msa_trigger (inside project root)
   - slack       — Socket Mode listener for DMs and @mentions
 """
 
@@ -12,6 +12,7 @@ import os
 import time
 import threading
 from datetime import datetime
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -55,9 +56,12 @@ class Scheduler:
         Watch for a trigger file. When it appears, run the agent and delete it.
         Useful for testing without a real event source.
 
-        Create trigger with: touch /tmp/msa_trigger
+        Create trigger with: touch tmp/msa_trigger  (relative to project root)
         """
-        trigger_path = self.config.get("trigger_file", "/tmp/msa_trigger")
+        _project_root = Path(__file__).parent.parent.resolve()
+        default_trigger = str(_project_root / "tmp" / "msa_trigger")
+        trigger_path = self.config.get("trigger_file", default_trigger)
+        Path(trigger_path).parent.mkdir(parents=True, exist_ok=True)
         logger.info("Watching for trigger file: %s", trigger_path)
         while True:
             if os.path.exists(trigger_path):
