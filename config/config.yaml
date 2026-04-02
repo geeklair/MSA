@@ -11,9 +11,12 @@ scratchpad_path: scratchpads/active.yaml
 rules_path: config/rules.md
 max_iterations: 5
 
-scheduler:
-  mode: interval              # interval | file_watch | slack
-  interval_seconds: 300       # 5 minutes
+scheduler: slack
+
+  #mode: interval              # interval | file_watch | slack
+  # interval_seconds: 300       # 5 minutes (interval mode only)
+  # slack mode: set SLACK_BOT_TOKEN (xoxb-…) and SLACK_APP_TOKEN (xapp-…)
+  # Listens for DMs and @mentions via Socket Mode; no open port required.
 
 tools:
   # Tools are all enabled by default. Disable here if needed.

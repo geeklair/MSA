@@ -2,32 +2,11 @@
 msa/scheduler.py — Trigger-based scheduler for the MSA.
 
 Supports:
-  - Cron-style interval scheduling
-  - Slack event trigger (webhook listener)
-  - Manual trigger via file watch
-
-Security model (Slack listener)
---------------------------------
-Every inbound Slack request is authenticated with HMAC-SHA256 before the
-agent is triggered.  Two defences are layered:
-
-  1. Signature verification — Slack signs every request using a shared secret
-     (SLACK_SIGNING_SECRET).  We recompute the signature from the raw request
-     body and reject any request where it doesn't match, ensuring the payload
-     originated from Slack and was not tampered with in transit.
-
-  2. Timestamp check — requests older than five minutes are rejected to
-     prevent replay attacks (an attacker capturing a valid signed request and
-     replaying it later).
-
-The listener binds to 127.0.0.1 by default so it is not exposed to the
-network.  To accept external connections, set `slack_host: "0.0.0.0"` in
-config and place a TLS-terminating reverse proxy (nginx, Caddy, etc.) in
-front of it.
+  - interval    — run the agent on a fixed time interval
+  - file_watch  — watch for a trigger file at /tmp/msa_trigger
+  - slack       — Socket Mode listener for DMs and @mentions
 """
 
-import hashlib
-import hmac
 import logging
 import os
 import time
@@ -40,7 +19,11 @@ logger = logging.getLogger(__name__)
 class Scheduler:
     def __init__(self, agent):
         self.agent = agent
-        self.config = agent.config.get("scheduler", {})
+        scheduler_config = agent.config.get("scheduler", {})
+        if isinstance(scheduler_config, str):
+            self.config = {"mode": scheduler_config}
+        else:
+            self.config = scheduler_config or {}
         self.mode = self.config.get("mode", "interval")
         self.interval = self.config.get("interval_seconds", 300)  # default 5 min
 
@@ -49,7 +32,7 @@ class Scheduler:
         if self.mode == "interval":
             self._run_interval()
         elif self.mode == "slack":
-            self._run_slack_listener()
+            self._run_slack_socket_mode()
         elif self.mode == "file_watch":
             self._run_file_watch()
         else:
@@ -86,97 +69,110 @@ class Scheduler:
                     logger.error("Agent run failed: %s", e)
             time.sleep(2)
 
-    def _run_slack_listener(self):
+    def _run_slack_socket_mode(self):
         """
-        Authenticated Slack webhook listener.
+        Slack Socket Mode listener — no open port required.
 
-        Required environment variable:
-            SLACK_SIGNING_SECRET — the signing secret from your Slack app's
-            Basic Information page (Settings > Basic Information > App Credentials).
+        Listens for direct messages and @mentions via a persistent WebSocket
+        connection to Slack. When a qualifying message arrives the agent runs
+        one full cycle, then replies in-thread with the scratchpad notes.
 
-        The listener refuses to start if SLACK_SIGNING_SECRET is absent so
-        there is no way to accidentally run an unauthenticated endpoint.
+        Required environment variables:
+            SLACK_BOT_TOKEN  — bot/user OAuth token  (xoxb-…)
+            SLACK_APP_TOKEN  — app-level token for Socket Mode (xapp-…)
+
+        Slack app setup:
+            • Enable Socket Mode in your app's settings.
+            • Subscribe to the `message.im` and `app_mention` bot events.
+            • Generate an App-Level Token with the `connections:write` scope.
         """
         try:
-            from flask import Flask, request, jsonify, abort
+            from slack_sdk import WebClient
+            from slack_sdk.socket_mode import SocketModeClient
+            from slack_sdk.socket_mode.response import SocketModeResponse
         except ImportError:
-            logger.error("Flask required for Slack listener: pip install flask")
+            logger.error("slack-sdk required for Socket Mode: pip install slack-sdk")
             raise
 
-        # Fail fast: refuse to start without the signing secret.
-        # Accepting requests without it would let any HTTP client trigger the agent.
-        signing_secret = os.environ.get("SLACK_SIGNING_SECRET", "")
-        if not signing_secret:
+        bot_token = os.environ.get("SLACK_BOT_TOKEN", "")
+        app_token = os.environ.get("SLACK_APP_TOKEN", "")
+
+        if not bot_token:
             raise RuntimeError(
-                "SLACK_SIGNING_SECRET environment variable is not set. "
-                "Set it to the signing secret from your Slack app's "
-                "Basic Information page before starting the Slack listener."
+                "SLACK_BOT_TOKEN environment variable is not set. "
+                "Set it to your bot OAuth token (xoxb-…)."
+            )
+        if not app_token:
+            raise RuntimeError(
+                "SLACK_APP_TOKEN environment variable is not set. "
+                "Set it to an app-level token with the connections:write scope (xapp-…)."
             )
 
-        def _verify_slack_signature(req) -> bool:
-            """
-            Verify that *req* carries a valid Slack request signature.
+        web_client = WebClient(token=bot_token)
+        socket_client = SocketModeClient(app_token=app_token, web_client=web_client)
 
-            Slack's signing algorithm (https://api.slack.com/authentication/
-            verifying-requests-from-slack):
-              1. Concatenate "v0:", the request timestamp, ":", and the raw body.
-              2. Compute HMAC-SHA256 of that string using SLACK_SIGNING_SECRET.
-              3. Prefix the hex digest with "v0=" and compare to X-Slack-Signature.
+        # Prevent concurrent agent cycles triggered by rapid Slack messages.
+        cycle_lock = threading.Lock()
 
-            Returns True only when the signature matches and the request is fresh
-            (timestamp within ±5 minutes of the current time).
-            """
-            ts = req.headers.get("X-Slack-Request-Timestamp", "")
-            sig = req.headers.get("X-Slack-Signature", "")
+        def handle_event(client: SocketModeClient, req):
+            if req.type != "events_api":
+                return
 
-            if not ts or not sig:
-                logger.warning("Slack request missing signature headers — rejected")
-                return False
+            # Acknowledge immediately — Slack requires a response within 3 s.
+            client.send_socket_mode_response(SocketModeResponse(envelope_id=req.envelope_id))
 
-            # Reject stale requests to prevent replay attacks.
+            event = req.payload.get("event", {})
+            event_type = event.get("type", "")
+
+            # Only act on direct messages and channel @mentions.
+            if event_type not in ("message", "app_mention"):
+                return
+
+            # Skip bot messages and message edits/deletes to avoid loops.
+            if event.get("bot_id") or event.get("subtype"):
+                return
+
+            channel = event.get("channel")
+            thread_ts = event.get("thread_ts") or event.get("ts")
+
+            logger.info("Slack event received: type=%s channel=%s", event_type, channel)
+
+            if not cycle_lock.acquire(blocking=False):
+                logger.info("Agent cycle already in progress — skipping duplicate trigger.")
+                web_client.chat_postMessage(
+                    channel=channel,
+                    thread_ts=thread_ts,
+                    text="A cycle is already running. Please wait for it to finish.",
+                )
+                return
+
             try:
-                age = abs(time.time() - float(ts))
-            except ValueError:
-                logger.warning("Slack request has non-numeric timestamp '%s' — rejected", ts)
-                return False
-            if age > 300:
-                logger.warning("Slack request timestamp too old (%.0fs) — rejected", age)
-                return False
+                self.agent.run_once()
+            except Exception as e:
+                logger.error("Agent cycle failed: %s", e)
+                web_client.chat_postMessage(
+                    channel=channel,
+                    thread_ts=thread_ts,
+                    text=f"Agent cycle failed: {e}",
+                )
+                return
+            finally:
+                cycle_lock.release()
 
-            body = req.get_data(as_text=True)
-            base_string = f"v0:{ts}:{body}"
-            expected = "v0=" + hmac.new(
-                signing_secret.encode(),
-                base_string.encode(),
-                hashlib.sha256,
-            ).hexdigest()
+            # Reply with the scratchpad notes produced during the cycle.
+            state = self.agent.scratchpad.load()
+            notes = state.get("notes") or "(no notes)"
+            web_client.chat_postMessage(
+                channel=channel,
+                thread_ts=thread_ts,
+                text=f"Cycle complete.\n\n*Notes:*\n{notes}",
+            )
 
-            # compare_digest runs in constant time to prevent timing side-channels.
-            return hmac.compare_digest(expected, sig)
+        socket_client.socket_mode_request_listeners.append(handle_event)
 
-        # Security: bind to loopback by default so the port is not reachable
-        # from other machines.  Override with slack_host: "0.0.0.0" in config
-        # only when a reverse proxy with TLS is terminating connections in front.
-        host = self.config.get("slack_host", "127.0.0.1")
-        port = self.config.get("slack_port", 3000)
+        logger.info("Slack Socket Mode listener connecting...")
+        socket_client.connect()
+        logger.info("Slack Socket Mode listener connected.")
 
-        app = Flask(__name__)
-
-        @app.route("/slack/trigger", methods=["POST"])
-        def slack_trigger():
-            if not _verify_slack_signature(request):
-                abort(403)
-
-            data = request.json or {}
-            logger.info("Slack trigger received: %s", data)
-
-            # Run agent in a background thread so we can return a 200 response
-            # to Slack within its 3-second acknowledgement window.
-            thread = threading.Thread(target=self.agent.run_once)
-            thread.daemon = True
-            thread.start()
-
-            return jsonify({"text": "Agent cycle started."})
-
-        logger.info("Slack listener starting on %s:%d", host, port)
-        app.run(host=host, port=port)
+        # Block the main thread; the socket client runs its own threads.
+        threading.Event().wait()
