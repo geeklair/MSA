@@ -3,5 +3,4 @@ pyyaml>=6.0
 openai>=1.0.0       # for vLLM / OpenAI-compat backend
 requests>=2.31.0    # for Ollama backend
 flask>=3.0.0        # optional: for Slack trigger listener
-slack-sdk>=3.0.0    # optional: for Slack Socket Mode scheduler
-websocket-client>=1.0.0  # required by slack-sdk Socket Mode
+slack-bolt>=1.18.0  # optional: for Slack Socket Mode scheduler (pulls in slack-sdk, websocket-client)
