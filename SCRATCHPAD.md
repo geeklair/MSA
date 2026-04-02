@@ -1,6 +1,6 @@
 # The Scratchpad: Lifecycle and File Mechanics
 
-This document explains precisely how the three scratchpad files are created, when each is written, and how state evolves through a cycle. It is intended for students who want to understand the agent's memory system from the code up.
+This document explains precisely how the three scratchpad files are created, when each is written, and how state evolves through a cycle. It is intended to explain how the agent's memory system behaves.
 
 For a high-level description of the files and the YAML schema, see **README.md §6**. For a quick operator reference, see **CLAUDE.md**.
 
