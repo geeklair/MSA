@@ -1,10 +1,42 @@
 """
 msa/scheduler.py — Trigger-based scheduler for the MSA.
 
-Supports:
-  - interval    — run the agent on a fixed time interval
-  - file_watch  — watch for a trigger file at tmp/msa_trigger (inside project root)
-  - slack       — Socket Mode listener for DMs and @mentions
+The scheduler's only job is to decide *when* to call agent.run_once().
+All three modes share that single call site and nothing else.
+
+Modes
+-----
+interval    Fixed sleep loop. Fires once on startup, then every interval_seconds.
+            No drift correction: if a cycle takes T seconds, the next fires
+            at T + interval_seconds, not at interval_seconds.
+
+file_watch  Polls for tmp/msa_trigger every 2 seconds. When found, deletes
+            the file and fires one cycle. Use `touch tmp/msa_trigger` to trigger.
+            Useful for manual testing without restarting the process.
+
+slack       Slack Socket Mode via slack_bolt. No inbound port required.
+            SocketModeHandler opens an outbound WebSocket to Slack's servers.
+            The bot fires a cycle when it receives a DM or @mention.
+
+Slack implementation notes
+---------------------------
+ack() is called as the first action in every handler, before the agent runs.
+Slack retries events that are not acknowledged within 3 seconds; calling ack()
+immediately satisfies that requirement regardless of cycle duration.
+
+The agent cycle runs in a background daemon thread after ack() so the handler
+can return promptly. A threading.Lock prevents concurrent cycles when messages
+arrive faster than one cycle completes.
+
+seen_event_ids provides explicit deduplication on top of slack_bolt's built-in
+dedup to guard against edge cases in multi-handler setups.
+
+The bot's own user_id is fetched at startup and filtered out to prevent the
+bot from triggering itself when it posts cycle results to the channel.
+
+Required env vars for Slack mode:
+  SLACK_BOT_TOKEN  — bot OAuth token (xoxb-…)
+  SLACK_APP_TOKEN  — app-level token with connections:write scope (xapp-…)
 """
 
 import logging
@@ -18,6 +50,14 @@ logger = logging.getLogger(__name__)
 
 
 class Scheduler:
+    """
+    Wraps an Agent and calls run_once() based on the configured trigger mode.
+
+    Accepts the scheduler config as either a plain string ("interval") or a
+    dict ({"mode": "interval", "interval_seconds": 300}). Both forms are
+    normalized to a dict in __init__.
+    """
+
     def __init__(self, agent):
         self.agent = agent
         scheduler_config = agent.config.get("scheduler", {})

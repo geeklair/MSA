@@ -44,12 +44,24 @@ _BASE_DIR = Path(__file__).parent.parent.resolve()
 # ---------------------------------------------------------------------------
 
 class BaseTool(ABC):
+    """
+    Abstract base for all agent tools.
+
+    Subclasses must set class-level `name` and `description` strings and
+    implement run(**kwargs). The name is the string the model places in the
+    "tool" field of its JSON response. The description is shown to the model
+    in the prompt so it knows when and how to use the tool.
+
+    run() must accept **kwargs to absorb any extra keys the model may include
+    in args without raising a TypeError.
+    """
+
     name: str = ""
     description: str = ""
 
     @abstractmethod
     def run(self, **kwargs) -> str:
-        pass
+        """Execute the tool and return a string result."""
 
     def schema(self) -> dict:
         return {"name": self.name, "description": self.description}
@@ -229,6 +241,15 @@ class HttpGetTool(BaseTool):
 # ---------------------------------------------------------------------------
 
 class ToolRegistry:
+    """
+    Maps tool names to BaseTool instances and provides a describe() string
+    that is injected into the model prompt each iteration.
+
+    The five built-in tools are registered automatically at construction.
+    To add a custom tool, call register() with an instance of your BaseTool
+    subclass, then add it to config/rules.md so the model knows it exists.
+    """
+
     def __init__(self, config: dict = None):
         self._tools: dict[str, BaseTool] = {}
         # Register defaults
@@ -236,18 +257,27 @@ class ToolRegistry:
             self.register(tool_cls())
 
     def register(self, tool: BaseTool):
+        """Add a tool to the registry, keyed by tool.name."""
         self._tools[tool.name] = tool
         logger.debug("Registered tool: %s", tool.name)
 
     def has(self, name: str) -> bool:
+        """Return True if a tool with this name is registered."""
         return name in self._tools
 
     def call(self, name: str, args: dict) -> str:
+        """
+        Look up tool by name and call run(**args).
+
+        Raises ValueError if the tool is not registered (caller should check
+        has() first, but the error is catchable either way).
+        """
         if not self.has(name):
             raise ValueError(f"Unknown tool: {name}")
         return self._tools[name].run(**args)
 
     def describe(self) -> str:
+        """Return a bullet-list string of all registered tools for the model prompt."""
         lines = []
         for t in self._tools.values():
             lines.append(f"- {t.name}: {t.description}")

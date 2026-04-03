@@ -4,7 +4,7 @@
 
 ## 0. Preface
 
-There is much to be learned from paring down complex systems into small, workable systems that fit in your hand. The minimal synthetic bacterial cell (Venter, et. al) provided the smallest biological machinery needed for a cell.  This repo provides the minimal components and architecture needed to understand and then extend pocket-sized agents into useful bots.
+There is much to be learned from paring down complex systems into small, workable components that fit in your hand. The minimal synthetic bacterial cell (Venter, et. al) provided the smallest biological machinery needed for a cell. Borrowing from that concept, this repo provides the minimal components and architecture needed to understand and then extend pocket-sized agents into useful bots.
 
 > *"Perfection is achieved not when there is nothing more to add, but when there is nothing left to take away."*
 > — Antoine de Saint-Exupéry
@@ -13,7 +13,7 @@ There is much to be learned from paring down complex systems into small, workabl
 
 The **Minimal Synthetic Agent (MSA)** is a simple codebase that shows exactly how an autonomous AI agent loop works — stripped of framework magic so every component is visible and editable.
 
-Most agent frameworks abstract away the loop: you never see how state is persisted between calls, how model output gets routed to tools, or what happens when the model doesn't know what to do next. MSA makes all of that explicit. It is intentionally small (~600 lines across 7 modules) and intentionally unsophisticated — the goal is readability, not performance.
+Most agent frameworks abstract away the loop: you never see how state is persisted between calls, how model output gets routed to tools, or what happens when the model doesn't know what to do next. MSA makes all of that explicit. It is intentionally small and unsophisticated — the goal is readability, not performance.  It also has the potential for much destruction.  Caution is required.
 
 **What you learn by working with MSA:**
 - How an agent maintains state across time using a scratchpad
@@ -22,13 +22,17 @@ Most agent frameworks abstract away the loop: you never see how state is persist
 - How to add new capabilities without touching the core loop
 - How to audit and debug agent reasoning from logs and snapshots
 
-MSA runs against the Anthropic API by default but also supports local models (vLLM, Ollama) so you can experiment without incurring API costs.
+The default configuration uses an API key to connect to powerful models.  However, with the appropriate local computing, you could experiment with local models without incurring API costs.
 
 ---
 
 ## 2. Architecture
 
-Each agent cycle follows this sequence:
+At the highest level, an agent follows this pattern:
+
+Trigger → Load Context → Run Model → Execute Tools → Update Scratchpad → Sleep
+
+As implemented in MSA, that pattern becomes:
 
 ```
 wake
