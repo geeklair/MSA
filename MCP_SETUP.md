@@ -88,10 +88,9 @@ Terminal on Spark:
   cd ~/projects/msa && claude    ← Claude Code session
 
 In the Claude Code session:
-  "Run the agent once and show me what happened"
+  "Run bin/run.sh and show me what happened"
   "The dispatcher isn't parsing JSON correctly — fix it"
   "Add a Sage/Waggle tool that posts to a plugin"
 ```
 
 This is the tightest possible loop between you, Claude, and the running code.
-x`x`

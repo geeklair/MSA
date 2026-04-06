@@ -1,15 +1,4 @@
-#!/bin/bash
-cat > scratchpads/active.yaml << 'EOF'
-goals:
-- Demonstrate the MSA wake/run/sleep cycle
-- Echo a test message each cycle
-- Log completion to notes
-current_task: Run the echo tool with a hello message
-pending_actions:
-- Write a file called hello.txt with the current timestamp
-- Signal done
-completed_tasks: []
-notes: ""
-last_updated: null
-EOF
-echo "Scratchpad reset."
+#!/usr/bin/env bash
+# This script has moved to bin/reset.sh.
+# It now supports --clean and --template flags and reads from scratchpads/active.*.yaml templates.
+exec "$(dirname "$0")/bin/reset.sh" "$@"

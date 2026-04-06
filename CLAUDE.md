@@ -11,17 +11,23 @@ The agent wakes on a schedule, reads a YAML scratchpad, calls a language model, 
 ## Running the agent
 
 ```bash
-# Activate the virtualenv first
+# First-time setup
+bin/install.sh
 source .venv/bin/activate
+export ANTHROPIC_API_KEY=sk-ant-...
 
-# Single cycle (most common during development)
-python3 -m msa.agent --once
+# Verify environment
+bin/check-env.sh
+
+# Reset scratchpad and run one cycle
+bin/reset.sh
+bin/run.sh
 
 # Continuous scheduled run
-python3 -m msa.agent --schedule
+bin/run.sh --schedule
 
-# Reset scratchpad to a clean test state
-bash reset.sh
+# Reset everything (scratchpad + old logs/snapshots)
+bin/reset.sh --clean
 ```
 
 Required environment variables:
@@ -50,12 +56,21 @@ cat logs/$(ls -t logs/ | head -1)
 | `msa/scratchpad.py` | Loads, saves, and snapshots `active.yaml` | No |
 | `msa/scheduler.py` | Determines when cycles fire (interval / file_watch / slack) | No |
 | `msa/config.py` | Loads `config/config.yaml` with deep-merge defaults | No |
-| `msa/tools.py` | Tool registry + built-ins | **Add tools here** |
+| `msa/tools.py` | Tool registry + built-ins (echo, shell, read\_file, write\_file, http\_get, yolo\_detect) | **Add tools here** |
 | `config/config.yaml` | Runtime settings: backend, iterations, scheduler mode | **Yes** |
 | `config/rules.md` | System prompt: identity, goals, tool list, response format | **Yes** |
 | `scratchpads/active.yaml` | Live agent state | **Yes** |
+| `scratchpads/active.reset.yaml` | Default reset template (echo demo) | **Yes** |
+| `scratchpads/active.yolo.yaml` | YOLO detection example template | **Yes** |
 | `scratchpads/*_before/after.yaml` | Per-cycle snapshots (auto-generated) | No |
 | `logs/cycle_*.log` | Full execution trace per cycle (auto-generated) | No |
+| `bin/install.sh` | Create venv + install deps | No |
+| `bin/run.sh` | Run the agent (handles venv activation) | No |
+| `bin/reset.sh` | Reset scratchpad from template; `--clean` removes logs/snapshots | No |
+| `bin/check-env.sh` | Verify API keys, venv, and config | No |
+| `bin/status.sh` | Print current scratchpad and storage summary | No |
+| `bin/logs.sh` | Show most recent cycle log (`-f` to follow) | No |
+| `bin/trigger.sh` | Fire a file\_watch cycle trigger | No |
 
 ---
 
@@ -175,6 +190,7 @@ openai>=1.0.0           # vLLM / OpenAI-compat backend
 requests>=2.31.0        # Ollama backend
 flask>=3.0.0            # legacy webhook listener (unused by current slack mode)
 slack-bolt>=1.18.0      # Slack Socket Mode scheduler
+ultralytics>=8.0.0      # yolo_detect tool (lazy import — only loaded when tool is called)
 ```
 
 Install: `pip install -r requirements.txt`

@@ -65,7 +65,7 @@ wake (caused by a trigger)
 | `msa/scratchpad.py` | Loads, saves, and snapshots the YAML state file | No |
 | `msa/dispatcher.py` | Parses model JSON output; routes to tools or scratchpad updates | No |
 | `msa/model.py` | Multi-backend model client (Anthropic, vLLM, Ollama) | No |
-| `msa/tools.py` | Tool registry + built-in tools (echo, shell, read\_file, write\_file, http\_get) | **Yes — add your tools here** |
+| `msa/tools.py` | Tool registry + built-in tools (echo, shell, read\_file, write\_file, http\_get, yolo\_detect) | **Yes — add your tools here** |
 | `msa/scheduler.py` | Determines when cycles run (interval, file watch, Slack webhook) | No |
 | `msa/config.py` | Loads `config/config.yaml` and merges with defaults | No |
 | `msa/__init__.py` | Package marker | No |
@@ -75,7 +75,15 @@ wake (caused by a trigger)
 | `scratchpads/*_before.yaml` | Pre-cycle snapshots (auto-generated) | No |
 | `scratchpads/*_after.yaml` | Post-cycle snapshots (auto-generated) | No |
 | `logs/cycle_*.log` | Full execution trace per cycle (auto-generated) | No |
-| `reset.sh` | Resets `active.yaml` to a clean test state | Run it, don't edit |
+| `bin/install.sh` | Create venv and install dependencies | No |
+| `bin/run.sh` | Activate venv and run the agent (`--schedule` for continuous) | No |
+| `bin/reset.sh` | Reset `active.yaml` from a template; `--clean` removes old logs/snapshots | No |
+| `bin/check-env.sh` | Verify API keys, venv, and config before running | No |
+| `bin/status.sh` | Print current scratchpad state and storage summary | No |
+| `bin/logs.sh` | Show the most recent cycle log (`-f` to follow) | No |
+| `bin/trigger.sh` | Create the file-watch trigger (`file_watch` scheduler mode only) | No |
+| `scratchpads/active.reset.yaml` | Default reset template (echo demo) | **Yes — edit to change reset state** |
+| `scratchpads/active.yolo.yaml` | YOLO detection example template | **Yes** |
 | `requirements.txt` | Python dependencies | No |
 | `README.md` | Quick reference and backend options | No |
 | `MCP_SETUP.md` | Claude Code / MCP integration guide | No |
@@ -148,25 +156,27 @@ Increase `max_iterations` if your tasks require more than five steps. Reduce `in
 # Clone or enter the project directory
 cd /path/to/msa
 
-# Create and activate a virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
+# Create venv and install dependencies
+bin/install.sh
 
-# Install dependencies
-pip install -r requirements.txt
+# Activate the venv
+source .venv/bin/activate
 
 # Export your API key
 export ANTHROPIC_API_KEY=sk-ant-...
+
+# Verify everything is in order
+bin/check-env.sh
 ```
 
 ### First run
 
 ```bash
-# Reset scratchpad to a clean demo state
-bash reset.sh
+# Reset scratchpad to the default demo state
+bin/reset.sh
 
 # Run one complete agent cycle
-python3 -m msa.agent --once
+bin/run.sh
 ```
 
 You should see log output describing the cycle: which task was loaded, what the model decided to do, which tool was called, and what the result was. A new file appears in `logs/` and two snapshot files appear in `scratchpads/`.
@@ -234,24 +244,32 @@ watch -n 5 cat scratchpads/active.yaml
 
 ---
 
-## 7. The `reset.sh` Workflow
+## 7. The `bin/reset.sh` Workflow
 
-Use `reset.sh` to start a clean test cycle without manually editing YAML:
+Use `bin/reset.sh` to start a clean test cycle without manually editing YAML:
 
 ```bash
-# 1. Reset the scratchpad to the demo initial state
-bash reset.sh
+# Reset to the default demo state (echo → write hello.txt → done)
+bin/reset.sh
 
-# 2. Optionally clear old logs and snapshots
-rm -f logs/*.log scratchpads/*_before.yaml scratchpads/*_after.yaml
+# Reset AND remove old logs and snapshots (make clean equivalent)
+bin/reset.sh --clean
 
-# 3. Run a fresh cycle
-python3 -m msa.agent --once
+# Reset using the YOLO example template
+bin/reset.sh --template yolo
+
+# Both
+bin/reset.sh --clean --template yolo
+
+# Run a fresh cycle
+bin/run.sh
 ```
 
-`reset.sh` overwrites `active.yaml` with a known-good starting state (echo test → write hello.txt → signal done). It does not touch logs or old snapshots.
+The scratchpad templates live in `scratchpads/active.*.yaml` — plain YAML files you can read and edit directly. `bin/reset.sh` without `--clean` is safe to run at any time; it only overwrites `active.yaml` and leaves logs and snapshots intact.
 
-When you want to test your own goals, edit `reset.sh` to write your preferred initial state, or bypass it entirely and edit `active.yaml` directly.
+To add your own template, create `scratchpads/active.MYNAME.yaml` and run `bin/reset.sh --template MYNAME`.
+
+To test the `yolo_detect` tool specifically, place an image at `images/sample.jpg` inside the project directory and use `--template yolo`.
 
 ---
 
@@ -277,6 +295,23 @@ self.register(MyTool())
 ```
 
 Finally, add the tool to `config/rules.md` in the **Available Actions** section so the model knows it exists. The description in `rules.md` and the description on the class can differ — the class description is shown in prompts, the `rules.md` entry shapes when the model chooses to use it.
+
+### Try the YOLO tool with a collected image
+
+`yolo_detect` is a built-in example tool (alongside `echo`) that shows how a non-trivial dependency gets wired into the agent. Place any image inside the project directory, then set the scratchpad to run detection on it:
+
+```yaml
+goals:
+  - Detect objects in a collected image and record the results
+current_task: "Run yolo_detect on images/sample.jpg and write the results to results/detections.json"
+pending_actions:
+  - Signal done
+completed_tasks: []
+notes: ""
+last_updated: null
+```
+
+The tool returns a JSON array directly, which the agent can write to a file, log to notes, or pass to a follow-up task. The nano model (`yolo11n.pt`, ~6 MB) downloads automatically on first use.
 
 ### Give the agent real goals
 

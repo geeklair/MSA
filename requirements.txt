@@ -1,4 +1,5 @@
 anthropic>=0.25.0
+ultralytics>=8.0.0      # for yolo_detect tool
 pyyaml>=6.0
 openai>=1.0.0       # for vLLM / OpenAI-compat backend
 requests>=2.31.0    # for Ollama backend

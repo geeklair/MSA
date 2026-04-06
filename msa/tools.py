@@ -23,6 +23,7 @@ adversarial model output:
 """
 
 import ipaddress
+import json
 import logging
 import shlex
 import socket
@@ -237,6 +238,49 @@ class HttpGetTool(BaseTool):
 
 
 # ---------------------------------------------------------------------------
+# YOLO Tool
+# ---------------------------------------------------------------------------
+
+class YoloDetectTool(BaseTool):
+    name = "yolo_detect"
+    description = (
+        "Run YOLO object detection on an image file. "
+        "Returns a JSON array of detections, each with 'class', 'confidence', and 'box' (x1,y1,x2,y2). "
+        "Args: path (str) — path to image file within the project directory."
+    )
+
+    def run(self, path: str = "", **kwargs) -> str:
+        try:
+            validated = _validate_path(path)
+        except ValueError as e:
+            return json.dumps({"error": str(e)})
+
+        if not validated.exists():
+            return json.dumps({"error": f"File not found: {path}"})
+
+        try:
+            from ultralytics import YOLO  # lazy import — only required if tool is used
+        except ImportError:
+            return json.dumps({"error": "ultralytics is not installed. Run: pip install ultralytics"})
+
+        try:
+            model = YOLO("yolo11n.pt")
+            results = model(str(validated), verbose=False)
+            detections = []
+            for r in results:
+                for box in r.boxes:
+                    x1, y1, x2, y2 = [round(float(v), 1) for v in box.xyxy[0]]
+                    detections.append({
+                        "class": r.names[int(box.cls)],
+                        "confidence": round(float(box.conf), 3),
+                        "box": {"x1": x1, "y1": y1, "x2": x2, "y2": y2},
+                    })
+            return json.dumps(detections)
+        except Exception as e:
+            return json.dumps({"error": str(e)})
+
+
+# ---------------------------------------------------------------------------
 # Registry
 # ---------------------------------------------------------------------------
 
@@ -253,7 +297,7 @@ class ToolRegistry:
     def __init__(self, config: dict = None):
         self._tools: dict[str, BaseTool] = {}
         # Register defaults
-        for tool_cls in [EchoTool, ShellTool, ReadFileTool, WriteFileTool, HttpGetTool]:
+        for tool_cls in [EchoTool, ShellTool, ReadFileTool, WriteFileTool, HttpGetTool, YoloDetectTool]:
             self.register(tool_cls())
 
     def register(self, tool: BaseTool):

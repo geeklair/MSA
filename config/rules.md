@@ -36,6 +36,7 @@ Always respond with a single JSON object:
 - `http_get` — fetch a URL
 - `update_scratchpad` — update your memory without calling a tool
 - `done` — signal that your current task is complete
+- `yolo_detect` — run YOLO object detection on an image; returns a JSON array of `{class, confidence, box}` objects
 
 ### Decision Process
 1. Read your scratchpad carefully

@@ -201,6 +201,8 @@ self.register(MyTool())
 
 `**kwargs` in `run()` absorbs any extra keys the model includes in `args` without raising.
 
+`YoloDetectTool` (already registered) is a worked example of a heavier tool: it uses a lazy `from ultralytics import YOLO` inside `run()` so the import only fires when the tool is actually called, and it calls `_validate_path()` before touching the filesystem. It returns a JSON string (a list of `{class, confidence, box}` objects) rather than plain text, which the agent can write to a file or log to notes. Use it as a reference when adding tools that have large or optional dependencies.
+
 ### Security controls
 
 **ShellTool** uses `subprocess.run(..., shell=False)` with `shlex.split()`. This prevents shell metacharacter injection: if the model emits `"ls; rm -rf /"`, `shlex.split` tokenizes it into `["ls;", "rm", "-rf", "/"]` and `subprocess.run` tries to execute a binary literally named `ls;`, which does not exist. It does *not* prevent the model from requesting dangerous but valid commands like `rm -rf /`; add an allowlist for production.

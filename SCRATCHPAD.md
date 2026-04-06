@@ -73,7 +73,7 @@ def load(self) -> dict:
 
 `load()` reads `active.yaml` from disk and returns a plain Python **dict**. This is the only disk read of the cycle. From this point on the agent works entirely in memory — `active.yaml` is not touched again until Event 6.
 
-If `active.yaml` does not exist (first run, or after `reset.sh`), `load()` returns the default schema:
+If `active.yaml` does not exist (first run, or after `bin/reset.sh`), `load()` returns the default schema:
 
 ```python
 DEFAULT_SCHEMA = {
