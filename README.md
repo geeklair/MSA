@@ -13,7 +13,7 @@ There is much to be learned from paring down complex systems into small, workabl
 
 The **Minimal Synthetic Agent (MSA)** is a simple codebase that shows exactly how an autonomous AI agent loop works — stripped of framework magic so every component is visible and editable.
 
-Most agent frameworks abstract away the loop: you never see how state is persisted between calls, how model output gets routed to tools, or what happens when the model doesn't know what to do next. MSA makes all of that explicit. It is intentionally small and unsophisticated — the goal is readability, not performance.  It also has the potential for much destruction.  Caution is required.
+Most agent frameworks abstract away the loop: you never see how state is persisted between calls, how model output gets routed to tools, or what happens when the model doesn't know what to do next. MSA makes all of that explicit. It is intentionally small and unsophisticated — the goal is readability.  But there is also potential for much destruction.  Agents can run wild. Caution is required.
 
 **What you learn by working with MSA:**
 - How an agent maintains state across time using a scratchpad
@@ -32,14 +32,16 @@ At the highest level, an agent follows this pattern:
 
 Trigger → Load Context → Run Model → Execute Tools → Update Scratchpad → Sleep
 
+It is the REPL (Read-Eval-Print-Loop) for Agentic ssystems.
+
 As implemented in MSA, that pattern becomes:
 
 ```
-wake
+wake (caused by a trigger)
   └─ load scratchpads/active.yaml
        └─ build prompt (rules.md + scratchpad state + tool list)
             └─ call model (Anthropic / vLLM / Ollama)
-                 └─ dispatcher parses JSON response
+                 └─ parse JSON response from model with dispatcher
                       ├─ tool call → tools.py → result logged to scratchpad
                       └─ update_scratchpad → merge args into state
                            └─ repeat until "done" or max_iterations
@@ -49,7 +51,7 @@ wake
 
 **State lives only in the scratchpad.** The agent itself holds no memory between cycles. This means any cycle can be replayed, rewound, or debugged by inspecting a single YAML file.
 
-**One action per iteration.** The model emits exactly one JSON object per response — a tool call or a scratchpad update. This keeps the loop deterministic and the logs readable.
+**One action per iteration.** The model emits exactly one JSON object per response — a tool call or a scratchpad update. This keeps the loop and the logs readable.
 
 **Snapshots bracket every cycle.** Before and after each run, the scratchpad is snapshotted to `scratchpads/{timestamp}_before.yaml` and `scratchpads/{timestamp}_after.yaml`. You can always reconstruct what the agent was thinking at any point.
 

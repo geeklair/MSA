@@ -54,3 +54,4 @@ Domain tools for the Sage/Waggle edge-computing platform:
 ## 10. vLLM backend support
 
 Complete the vLLM / OpenAI-compatible backend path so MSA can run entirely on local models. Includes testing with common open-weight models and documenting the `base_url` + model-name config needed.
+ 
